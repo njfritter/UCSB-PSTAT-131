@@ -1,0 +1,281 @@
+---
+title: 'PSTAT 131 HW #1 by Nathan Fritter'
+output: pdf_document
+---
+
+# Problem 1
+Read in the follow bitimage 
+
+```{r results = 'hide'}
+library(bmp)
+img = read.bmp('~/Downloads/image1.bmp')
+rotate = function(x) t(apply(x, 2, rev))
+img = rotate(img)
+img = scale(img, center=TRUE, scale=FALSE)
+```
+
+Plot image in greyscale
+
+```{r results = 'hide'}
+gs = grey(seq(0, 1, length=256))
+image(img, asp=1, col=gs)
+```
+
+## Part A
+Compute the principal components using prcomp and list objects in the function output: i.e. str function would be useful.
+
+```{r}
+pca.img <- prcomp(img)
+str(pca.img)
+# This also works below
+names(pca.img)
+```
+
+## Part B
+Recall that principal components were linear combination of data columns.
+Verify that this is true by multiplying data matrix (original bitmap image img or a.k.a X) by loadings (pca.img$rotation object or a.k.a matrix of φij ) and compare to computed principal components (pca.img$x object or a.k.a Z’s)
+
+```{r}
+prod <- img * pca.img$rotation
+prin_comp <- pca.img$x
+
+norm(prin_comp - (prod), type = "F")
+```
+
+## Part C
+Check that rotation of the prcomp output is indeed a rotation matrix, say Q, by verifying a crucial property of orthonormal rotation matrices:
+
+```{r}
+Q <- pca.img$rotation
+norm((t(Q) * Q) - diag(512))
+```
+
+## Part D
+Using this fact, reconstruct the image from 10 and 100 principal components and plot the reconstructed image.
+
+```{r echo = 'false'}
+reconst.img <- prin_comp[,10:100] %*% t(Q[,10:100])
+image(reconst.img, asp = 1, col = gs)
+```
+
+## Part E
+Plot proportion of variance explained as function of number of principal components and also cumulative proportional variance explained. The function summary returns helpful objects including PVE. Using this information, find out how many principal components are needed to explain 90% of the
+variance.
+
+```{r}
+percent_var_expl <- pca.img$sdev^2 / sum(pca.img$sdev^2)
+screeplot(pca.img, npcs = 10)
+plot(percent_var_expl)
+```
+
+# Problem 2
+Discuss whether or not each of the following activities is a data mining task.
+
+## Part A
+Dividing the customers of a company according to their profitability.
+
+This is not a data mining task; this is simply a sorting task which does not require predicting a feature based on others, nor does it require exploring the relationships between variables. 
+
+## Part B
+Computing the total sales of a company.
+
+This is not a data mining task; this is a simply addition task in which you are not predicting a feature based on others, nor are you exploring the relationships between variables. 
+
+## Part C 
+Predicting the future stock price of a company using historical records.
+
+This is a data mining task, because you are trying to make a prediction for a feature based on previous data on that particular feature, along with data on other features. 
+
+## Part D
+Sorting a student database based on student identification numbers.
+
+This is not a data mining task; this is a simple sorting task and you are not predicting a feature based on others, nor are you exploring the relationships between variables. 
+
+## Part E
+Predicting the outcomes of tossing a (fair) pair of dice.
+
+This is not a data mining task; since the die are fair, the probabilities can be predicted easily since we assume that P(heads) = P(tails) = 1/2. 
+
+# Problem 3
+Consider the Boston housing data http://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.data from the UCI Machine Learning Repository http://archive.ics.uci.edu/ml/ . Data described
+at http://archive.ics.uci.edu/ml/machine-learning-databases/housing/housing.names
+
+## Part A 
+Describe this data set: how many observations? how many variables (or attributes)?, what is the unit analyzed?
+
+There are 506 observations of 14 variables (13 categorical, 1 binary-valued attribute), and the features are all numerical.
+
+## Part B
+Load the data into R and can call it Boston.Housing. Consider the fact that the columns of the dataset are unequally separated by white spaces.
+
+```{r results = 'hide'}
+Boston.Housing <- read.table("/var/folders/xr/ykjyy2_n71n7rmxhgnytgv0r0000gn/T//RtmpcYz1Ln/data5b6669088b1", quote="\"", comment.char="", col.names = c("Crime.Rate","ResiLand.Zoned","NonRetail.Bus","Charles.River","Nitr.Oxide", "Avg.Rooms","Age", "Wigh.Dist","Access.Idex","Tax","Pupil.Teacher","Blck","Lower.Sts","Med.Value"))
+str(Boston.Housing)
+```
+
+## Part C
+Produce a histogram of the median value of owner-occupied homes with the title “Histogram of median home value based on Boston Housing Data”. Using binwidth argument, gradually increase the number of bins (create four different histograms). What happens to the histogram?
+
+```{r}
+# Original Plot
+boston.hist <- hist(Boston.Housing$Med.Value, main="Histogram of median home value based on Boston Housing Data")
+
+# Second Plot
+boston.hist.2 <- hist(Boston.Housing$Med.Value, main="Histogram of median home value based on Boston Housing Data", breaks = 20)
+
+# Third Plot
+boston.hist.3 <- hist(Boston.Housing$Med.Value, main="Histogram of median home value based on Boston Housing Data", breaks = 50)
+
+# Fourth and Final Plot
+boston.hist.4 <- hist(Boston.Housing$Med.Value, main="Histogram of median home value based on Boston Housing Data", breaks = 100)
+```
+
+As you increase the number of bins, you begin to get a clearer picture of where the exact data points are, and a better idea of the distribution of the data as a result.
+
+## Part D
+Show all histograms plot in one chart.
+
+```{r}
+color1 <- rgb(173,216,230,max = 255, alpha = 80, names = "lt.blue")
+color2 <- rgb(255, 255, 0, max = 255, alpha = 80, names = "lt.yellow")
+color3 <- rgb(255,192,203, max = 255, alpha = 80, names = "lt.pink")
+color4 <- rgb(144,238,144, max = 255, alpha = 80, names = "lt.green")
+plot(boston.hist, col = color1, xlim = c(0, 60), ylim = c(0,200), main = "Histogram of median home value based on Boston Housing Data")
+plot(boston.hist.2, add = TRUE, col = color2)
+plot(boston.hist.3, add = TRUE, col = color3)
+plot(boston.hist.4, add = TRUE, col = color4)
+```
+
+## Part E
+Using R, compute mean, median, standard deviation and interquartile range of the median home value. What is a good measure of center and spread of your data? Explain why. Note that you are asked to compute median of the median home value. Does this make sense? Explain.
+
+```{r}
+mean(Boston.Housing$Med.Value)
+median(Boston.Housing$Med.Value)
+sd(Boston.Housing$Med.Value)
+IQR(Boston.Housing$Med.Value)
+```
+
+A good measure of center for this data is median because the data is highly skewed right, and therefore the mean would be highly influenced by outliers.
+A good measure of spread for the data is 
+
+## Part F
+Create 5 equally distributed ranks of Crime.Rate variable. Then use a boxplot to analyze if the median value of the house significantly differs across the levels of each rank of crime rate by town. Hint: Use the quantile() function.
+
+```{r}
+quantiles.crime <- quantile(Boston.Housing$Crime.Rate)
+quantiles.crime
+
+quantiles.value <- quantile(Boston.Housing$Med.Value)
+quantiles.value
+
+boxplot.crime <- boxplot(quantiles.value ~ quantiles.crime)
+```
+
+# Problem 4
+In this problem, you will develop a model to predict whether a given car gets high or low gas mileage
+based on the Auto data set, which is part of the ISLR package. You will also need to download class
+package for part d).
+
+```{r results = 'hide'}
+require(ISLR)
+require(data.table)
+attach(Auto)
+```
+
+## Part A
+Create a binary variable, mpg01, that contains a 1 if mpg contains a value above its median, and a 0 if mpg contains a value below its median. You can compute the median using the median() function. Make sure that you make mpg01 a factor variable. Also, use the data.table() function to create a single data set containing both mpg01 and the other Auto variables.
+
+```{r results = 'hide'}
+median.auto <- median(Auto$mpg)
+median.auto
+
+mpg01 <- ifelse(Auto$mpg > median.auto, 1, 0)
+mpg01
+
+require(tidyr)
+require(dplyr)
+
+new.auto.data <- Auto %>% mutate(mpg01)
+new.auto.data %>% head(8)
+View(new.auto.data)
+```
+
+## Part B
+Explore the data graphically in order to investigate the association between mpg01 and the other features. Which of the other features seem most likely to be useful in predicting mpg01? Scatterplots and boxplots and other graphical devices discussed in section may be useful tools to answer this question (you should at least include 3 different graphs). Describe your findings.
+
+```{r}
+pairs(new.auto.data[,-9])
+prcomp(new.auto.data[,-9])
+#boxplot()
+```
+
+It seems that Horsepower, Weight and Acceleration have the most correlation between themselves and the mpg01 variable. All the other variables seem highly uncorrelated.
+
+## Part C
+Split the data into a training set (75%) and a test set (25%). Call them train.set and test.set, respectively. The sample() command may be useful for answering this question.
+
+```{r}
+require(base)
+# Determine number and index of training points to use
+train.number <- 0.75 * length(mpg01)
+
+train.indices <- sample.int(392, train.number)
+
+# Extract the training set using our train indices
+train.set <- new.auto.data[train.indices,]
+str(train.set)
+
+# Get the test set from the rest
+test.set <- new.auto.data[-c(train.indices),]
+str(test.set)
+```
+
+## Part D
+Using train.set and test.set perform k-NN on the training data, with several values of k, in order to predict mpg01. Use only the variables that seemed most associated with mpg01 in (b) (Justify).
+What test errors do you obtain? Which value of K seems to perform the best on this data set?
+
+```{r}
+require(class)
+require(base)
+train.knn <- train.set[,c("horsepower","weight","acceleration")]
+test.knn <- test.set[,c("horsepower","weight","acceleration")]
+
+# Perform K Nearest Neighbors Analysis
+# Beginning with 1 neighbor
+knn.mpg <- knn(train.knn, test.knn, train.set$mpg01, k = 1)
+table(knn.mpg, test.set$mpg01)
+mean(knn.mpg == test.set$mpg01)
+
+# Now let's try 2 neighbors
+knn.mpg.2 <- knn(train.knn, test.knn, train.set$mpg01, k = 2)
+table(knn.mpg.2, test.set$mpg01)
+mean(knn.mpg.2 == test.set$mpg01)
+
+# Let's try 3
+knn.mpg.3 <- knn(train.knn, test.knn, train.set$mpg01, k = 3)
+table(knn.mpg.3, test.set$mpg01)
+mean(knn.mpg.3 == test.set$mpg01)
+
+# Accuracy decreased with K = 3
+# One more shot with K = 4
+knn.mpg.4 <- knn(train.knn, test.knn, train.set$mpg01, k = 4)
+table(knn.mpg.4, test.set$mpg01)
+mean(knn.mpg.4 == test.set$mpg01)
+
+# More accurate than K = 3, but not as much as K = 2
+# K = 5; last one
+knn.mpg.5 <- knn(train.knn, test.knn, train.set$mpg01, k = 5)
+table(knn.mpg.5, test.set$mpg01)
+mean(knn.mpg.5 == test.set$mpg01)
+```
+
+I used the three variables that seemed to have the highest correlation with mpg01 according to the scatterplots and boxplots from Part B. 
+
+The test errors obtained are...
+
+The first time I ran the algorithm, the K Nearest Neighbors algorithm with K = 2 ended up with the highest probability of 0.9591837. 
+
+The next time, K = 3 and K = 4 were the most accurate with probabilities of 0.877551.
+
+

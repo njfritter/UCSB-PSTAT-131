@@ -1,0 +1,125 @@
+---
+title: 'PSTAT 131 HW #3'
+author: "Nathan Fritter"
+date: "11/15/2016"
+output: pdf_document
+---
+
+# Problem 1
+We will analyze a dataset from a bakery chain.
+
+A bakery chain has a menu of about 40 pastry items and 10 coffee drinks. It has a number of locations in West Coast states (California, Oregon, Arizona, Nevada). The database stores information about the food/drinks offered for sale, locations, employees at each location and individual sales (receipts) at those locations. The database consists of five tables:
+• Goods: items on the menu (50 goods)
+• Transactions: items bought for each transactions (5000 transactions)
+
+This data can be read in using the following code.
+
+```{r}
+library(arules)
+library(arulesViz)
+# read goods information
+goods = read.table('~/Downloads/goods.csv', sep=',')
+names(goods) = c('item', 'desc1', 'desc2', 'price', 'desc3')
+goods$item = as.character(goods$item)
+goods$name = paste(goods$desc1, goods$desc2)
+
+# read transactions
+trans = read.transactions('~/Downloads/transactions.csv', sep=',', cols=1)
+```
+
+## Part A
+There are 50 unique items consisting of baked goods and drinks. Variable goods (below) give
+descriptions in columns named desc1 and desc2; most indicate flavor and type of the item,
+respectively. Using inspect() function, show the first 5 transacation. By matching up item codes in transactions (trans) to description of goods (goods), state items sold in the first transaction.
+
+```{r}
+inspect(trans[1:5])
+
+# Get items in first transaction
+trans1 = as.integer(as(trans[1], 'list')[[1]])
+trans1.items = subset(goods, item %in% trans1)
+trans1.items
+```
+
+## Part B
+Note that itemsets are shown with numeric ids because transactions.csv refer to items by their numeric ids. Item labels in transactions are accessible by calling itemLabels(trans). Function itemLabels() can also modify these labels.
+Following code replaces item labels in trans with corresponding item names in goods. (Vignette for semi_join function is from dplyr package: ?dplyr::semi_join)
+
+```{r}
+library(dplyr)
+trans.labels = semi_join(goods, itemInfo(trans), by=c('item'='labels'))
+itemLabels(trans) = trans.labels$name
+```
+
+Verify that itemsets in trans have been recoded by inspecting the first five transactions.
+
+```{r}
+inspect(trans[1:5])
+```
+
+## Part C
+Run association analysis with apriori() function. Specify thresholds of 0.01 for support and 0.5 for confidence. How many association rules were found? What are the five rules with highest support?
+
+```{r}
+trans.assoc.anal <- apriori(trans, parameter = list(supp = 0.01, conf = 0.5))
+# Find number association rules
+trans.assoc.anal
+# Find five rules with highest support (NOT FINISHED YET)
+inspect(trans.assoc.anal[1:5])
+```
+
+115 association rules were found, and the five rules with the highest support...
+## Part D
+Plot the scatter plot showing support and confidence, colored by lift. Can you identify two clusters of points based on confidence?
+
+```{r}
+plot(trans.assoc.anal)
+```
+
+I can identify a set of what appear to be outlier points (the bottom right section, in relation to the top left section where the majority of the rules are located); however the concentration of points in the top left corner do not seem to be close enough to warrant being just one cluster. There are at least two distinct groups of points based on confidence, but it is really more like 5-6 groups. 
+
+## Part E
+Information about each item in trans can be retrieved by using the itemInfo() function. Additional information can be assigned by this function also.
+
+```{r}
+# Read in data
+trans.labels = select(trans.labels, labels=name, desc1, desc2, desc3, price)
+itemInfo(trans) = trans.labels
+new.rules = apriori(trans, parameter=list(supp=0.01, conf=0.5))
+```
+
+Now, we can convert association rules by different groupings specified by columns in
+itemInfo(new.rules): i.e. we can transform association rules by flavors (desc1) or type of baked good (desc2), etc. Using arules::aggregate() function, identify two more sets of association rules, aggregated by once by desc1 and again by desc2. 
+Inspect the results.
+
+```{r}
+# Find two new sets of association rules
+# Aggregated by desc1, the desc2
+new.rules.desc1 <- aggregate(new.rules, by = "desc1")
+new.rules.desc2 <- aggregate(new.rules, by = "desc2")
+
+# Inspect results
+inspect(new.rules.desc1[1:5])
+inspect(new.rules.desc2[1:5])
+```
+
+## Part F
+Apply aggregate() function to trans variable by desc1, run association analysis and plot
+association rules with method='graph'. Repeat for desc2.
+
+```{r}
+# Apply aggregate function to trans variable by desc1
+trans.agg.desc1 <- aggregate(trans, by = "desc1")
+# Run association analysis
+trans.agg.desc1.rules <- apriori(trans.agg.desc1)
+# Plot association rules
+plot(trans.agg.desc1.rules, method = "graph")
+
+# Repeat for desc2
+# Apply aggregate function to trans variable by desc1
+trans.agg.desc2 <- aggregate(trans, by = "desc2")
+# Run association analysis
+trans.agg.desc2.rules <- apriori(trans.agg.desc2)
+# Plot association rules
+plot(trans.agg.desc2.rules, method = "graph")
+```

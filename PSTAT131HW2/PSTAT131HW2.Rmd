@@ -1,0 +1,221 @@
+---
+title: 'PSTAT 131 HW #2'
+author: "Nathan Fritter"
+date: "10/25/2016"
+output: pdf_document
+---
+
+# Problem 1
+We compare three classification techniques, namely KNN, LDA, and QDA using the Iris data.
+
+```{r}
+data(iris)
+iris = as.data.frame(iris)
+# Separate numerical variables from Species
+X.iris = iris[, c('Sepal.Length', 'Sepal.Width', 'Petal.Length', 'Petal.Width')]
+Y.iris = iris[, 'Species']
+```
+
+## Part A
+Perform ...
+
+```{r}
+require(class)
+require(data.table)
+require(MASS)
+train.percent <- 0.70
+train.number <- train.percent * 150 # 150 is number of observations
+train.indices <- sample.int(150, train.number) #Get indices for train set
+
+# Extract the training set using our train indices
+X.train <- X.iris[train.indices,]
+Y.train <- Y.iris[train.indices]
+train.data <- iris[train.indices,]
+
+# Get the test set from the rest
+X.test <- X.iris[-c(train.indices),]
+Y.test <- Y.iris[-c(train.indices)]
+test.data <- iris[-c(train.indices),]
+
+# Run analysis
+iris.knn <- knn(X.train, X.test, cl = Y.train, k = 2)
+
+# Visualize results
+results <- data.table(Y.test, iris.knn)
+
+# Get train error rates
+num.results <- nrow(results)
+num.correct <- sum(Y.test == iris.knn)
+train.accuracy <- num.correct / num.results
+train.error.rate <- 1 - train.accuracy
+train.error.rate
+
+# Perform Leave One Out Cross Validation (LOOCV)
+LOOCV <- knn.cv(X.train, cl = Y.train, k = 2)
+LOOCV
+
+# Extract test error rate for k = 2
+LOOCV.correct <- sum(LOOCV == Y.train)
+num.possible <- length(Y.train)
+test.error.rate.2 <- 1 - (LOOCV.correct / num.possible)
+test.error.rate.2
+```
+
+## Part B
+
+```{r}
+# Perform Leave One Out Cross Validation (LOOCV) a bunch of times
+# Use this function
+test.error.rate = NULL
+knn.wrap <- function(k, YTest, ...){ 
+  p.YTest = knn(..., k=k) 
+  mean(YTest != p.YTest)
+}
+test.error.rate = sapply(1:50, 
+           knn.wrap,
+           YTest = Y.test,
+           train = X.train, 
+           test = X.test, 
+           cl = Y.train)
+
+test.error.table <- data.table(1:50, test.error.rate)
+test.error.table
+min(test.error.table$test.error.rate)
+```
+
+```{r echo=FALSE, results = 'hide'}
+# Not necessary; will delete before turning in
+# Let's use k = 1
+LOOCV.1 <- knn.cv(X.train, cl = Y.train, k = 1)
+LOOCV.1
+
+# Extract test error rate for k = 1
+LOOCV.correct.1 <- sum(LOOCV.1 == Y.train)
+num.possible <- length(Y.train)
+test.error.rate.1 <- LOOCV.correct.1 / num.possible
+1 - test.error.rate.1
+
+# Better than k = 2
+# Let's try k = 3
+LOOCV.3 <- knn.cv(X.train, cl = Y.train, k = 3)
+LOOCV.3
+
+# Extract test error rate for k = 3
+LOOCV.correct.3 <- sum(LOOCV.3 == Y.train)
+num.possible <- length(Y.train)
+test.error.rate.3 <- LOOCV.correct.3 / num.possible
+1 - test.error.rate.3
+
+# Best one so far
+# Now k = 4
+LOOCV.4 <- knn.cv(X.train, cl = Y.train, k = 4)
+LOOCV.4
+
+# Extract test error rate for k = 4
+LOOCV.correct.4 <- sum(LOOCV.4 == Y.train)
+num.possible <- length(Y.train)
+test.error.rate.4 <- LOOCV.correct.4 / num.possible
+1 - test.error.rate.4
+
+# Going back up
+# One more try with k = 5
+LOOCV.5 <- knn.cv(X.train, cl = Y.train, k = 5)
+LOOCV.5
+
+# Extract test error rate for k = 5
+LOOCV.correct.5 <- sum(LOOCV.5 == Y.train)
+num.possible <- length(Y.train)
+test.error.rate.5 <- LOOCV.correct.5 / num.possible
+1 - test.error.rate.5
+
+# New lowest test error rate
+# Let's see k = 6
+LOOCV.6 <- knn.cv(X.train, cl = Y.train, k = 6)
+LOOCV.6
+
+# Extract test error rate for k = 6
+LOOCV.correct.6 <- sum(LOOCV.6 == Y.train)
+num.possible <- length(Y.train)
+test.error.rate.6 <- LOOCV.correct.6 / num.possible
+1 - test.error.rate.6
+```
+
+## Part C
+
+```{r}
+fit.LDA <- lda(Species ~ ., data = iris, CV = T)
+lda.results <- data.table(fit.LDA$class, iris$Species)
+# Gonna calculate the incorrect ones in a different way
+num.incorrect <- sum(fit.LDA$class != iris$Species)
+lda.error.rate <- num.incorrect / nrow(lda.results)
+lda.error.rate
+```
+
+## Part D
+
+```{r}
+fit.QDA <- qda(Species ~ ., data = iris, CV = T)
+qda.results <- data.table(fit.QDA$class, iris$Species)
+# Gonna calculate the incorrect ones in a different way
+num.incorrect <- sum(fit.QDA$class != iris$Species)
+lda.error.rate <- num.incorrect / nrow(lda.results)
+lda.error.rate
+```
+
+## Part E
+Base on the analysis above, I would choose LDA over KNN and QDA because the test error rate was the lowest. Even though the test error rate for the QDA analysis was very close to the rate for LDA, which means that perhaps sometimes QDA would be the better choice
+
+## Part F
+
+```{r}
+
+```
+
+## Part G
+
+```{r}
+dt = data.frame(Sepal.Length = c(4, 6), Sepal.Width = c(2.5, 4),
+                Petal.Length = c(3, 1.8), Petal.Width = c(0.5, 1.5))
+dt
+
+# KNN prediction
+knn.pred <- iris.knn
+
+# LDA prediction
+lda.pred <- predict(fit.LDA, newdata = dt)
+
+# QDA prediction
+qda.pred <- predict(fit.QDA, newdata = dt)
+```
+
+# Problem 2
+
+```{r}
+spam <- read.csv("/var/folders/xr/ykjyy2_n71n7rmxhgnytgv0r0000gn/T//RtmpIHSb5M/data3834a2481a9", header=FALSE)
+View(spam)
+spam$V58 <- factor(spam$V58, levels = c(0, 1), labels = c("good", "spam"))
+```
+
+## Part A
+
+```{r}
+set.seed(1)
+file.length <- length(spam$V58) #Use any column in spam to figure this out
+test.indices <- sample.int(file.length, 1000) # Take 1,000 out of data for testing
+# Make train and test set
+test.set <- spam[test.indices,]
+train.set <- spam[-c(test.indices),]
+```
+
+## Part B 
+Using the training data, fit the following models:
+```{r}
+# Pruned tree using default settings of function tree()
+tree.train <- tree(data = X.train)
+plot(tree.train)
+# Compute test error rate...
+
+# Pruned tree with the following extras ...
+tree.train.2 <- tree(data = X.train, control = tree.control(nrow(train.set)), mincut = 2, minsize = 5, mindev = 0.001)
+# Compute test error rate
+```
